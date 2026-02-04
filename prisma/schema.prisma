@@ -1,0 +1,27 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  userId      String   // <--- THIS IS NEW. Stores the Clerk User ID.
+  company     String
+  position    String
+  listingUrl  String?
+  status      String   @default("SAVED")
+  location    String?
+  salary      String?
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Indexing userId makes queries faster when we filter by user later
+  @@index([userId])
+}

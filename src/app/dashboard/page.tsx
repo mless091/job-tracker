@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, UserCircle, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import SearchInput from "@/components/ui/job-board/SearchInput";
+import { Job } from "@prisma/client"; // <--- Add this line
 
 // --- NEW ROBUST HEADER COMPONENT ---
 function SortableHeader({ 
@@ -131,7 +132,7 @@ export default async function DashboardPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.map((job) => (
+                {jobs.map((job: Job) => (
                   <TableRow key={job.id}>
                     <TableCell className="font-medium">{job.company}</TableCell>
                     <TableCell>{job.position}</TableCell>

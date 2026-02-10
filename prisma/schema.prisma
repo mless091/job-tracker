@@ -25,3 +25,12 @@ model Job {
   // Indexing userId makes queries faster when we filter by user later
   @@index([userId])
 }
+model UserPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique // One set of prefs per user
+  masterResumeUrl String?  // <--- The link to Vercel Blob
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+}

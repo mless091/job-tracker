@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { put } from "@vercel/blob";
 
 export async function createJob(formData: FormData) {
   // 1. Auth Check
@@ -72,4 +73,36 @@ export async function updateStatus(jobId: string, newStatus: string) {
 
   revalidatePath(`/dashboard/${jobId}`);
   revalidatePath("/dashboard");
+}
+// app/actions.ts
+
+export async function uploadResume(formData: FormData) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const file = formData.get("file") as File;
+  
+  // NUCLEAR FIX: Add Timestamp to filename so it is ALWAYS unique
+  const uniqueFilename = `resumes/resume-${userId}-${Date.now()}.pdf`;
+
+  const blob = await put(uniqueFilename, file, {
+    access: "public",
+    token: process.env.BLOB_READ_WRITE_TOKEN,
+  });
+
+  console.log("🔥 GENERATED URL:", blob.url); // Log 1
+
+  // Save to DB
+  const updatedUser = await prisma.userPreferences.upsert({
+    where: { userId },
+    update: { masterResumeUrl: blob.url },
+    create: { 
+      userId, 
+      masterResumeUrl: blob.url 
+    },
+  });
+
+  console.log("💾 SAVED TO DB:", updatedUser.masterResumeUrl); // Log 2
+
+  revalidatePath("/profile");
 }

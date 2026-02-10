@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteJob } from "@/app/actions";
 import StatusSelect from "@/components/ui/job-board/StatusSelect";
+import AiResumeGenerator from "@/components/ui/job-board/AiResumeGenerator";
 
 export default async function JobDetailPage({
   params,
@@ -92,29 +93,28 @@ export default async function JobDetailPage({
           </Card>
         </div>
 
+        {/* RIGHT COLUMN: ACTIONS & AI */}
         <div className="space-y-6">
+          {/* AI GENERATOR CARD */}
+          <AiResumeGenerator jobId={job.id} />
+
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-             {job.listingUrl && (
+              {job.listingUrl && (
                 <a 
-                    // THE FIX: Check for protocol, add if missing
-                    href={job.listingUrl.startsWith('http') ? job.listingUrl : `https://${job.listingUrl}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                  href={job.listingUrl.startsWith('http') ? job.listingUrl : `https://${job.listingUrl}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
                 >
-                    <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full">
                     <ExternalLink className="mr-2 h-4 w-4" />
                     View Original Listing
-                    </Button>
+                  </Button>
                 </a>
-                )}
-              
-              <Button variant="secondary" className="w-full" disabled>
-                Generate Resume (Coming Soon)
-              </Button>
+              )}
             </CardContent>
           </Card>
         </div>

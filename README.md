@@ -1,6 +1,6 @@
-# JobFlow AI - Intelligent Career Copilot
+# CareerOS - Intelligent Career Copilot
 
-**JobFlow AI** is a full-stack application designed to modernize the job search process. It combines a kanban-style application tracker with a Generative AI engine that autonomously rewrites user resumes to match specific job descriptions.
+**CareerOS** is a full-stack application designed to modernize the job search process. It combines a kanban-style application tracker with a Generative AI engine that autonomously rewrites user resumes to match specific job descriptions.
 
 ![Dashboard Preview](./public/dashboard-preview.png) *(Note: Add a screenshot here later)*
 

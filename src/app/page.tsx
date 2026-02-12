@@ -19,7 +19,7 @@ export default function Home() {
             <BrainCircuit className="w-5 h-5 text-white" />
           </div>
           <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
-            JobFlow AI
+            CareerOS
           </span>
         </div>
 

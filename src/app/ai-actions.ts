@@ -35,21 +35,22 @@ export async function generateTailoredResume(jobId: string) {
     throw new Error("Failed to read text from resume.");
   }
 
-  // --- THE "SWEET SPOT" PROMPT ---
+  // --- PROMPT ---
   const prompt = `
-    You are an expert Resume Architect.
+    You are an expert Resume Architect, with the goal of creating a perfectly constructed, optimized Resume for the candidate for the particular role.
     
     GOAL: Create a DENSE, SINGLE-PAGE resume.
-    The previous version was slightly too long. We need to tighten it up while keeping the "Experienced" feel.
     
     ADJUSTMENTS:
     1. **Bullet Count:** Generate **3-5 bullets** per role/project. (Aim for 4).
-    2. **Conciseness:** Bullets should be impactful but not overly wordy. Focus on the result.
+    2. **Conciseness:** Bullets should be impactful but not overly wordy. Focus on the result, and optimize to contain keywords from the job description.
     3. **No Summary:** Do not include a summary.
+    4. **ATS:** Ensure the resume is optimzied to score highly on any ATS software
+    5. **No Lying:** Do not create skills or roles for the candidate. Focus on optimizing what they have
     
     STRICT CLASSIFICATION:
     - **Experience:** Paid Work/Internships ONLY.
-    - **Projects:** "CyBot", "Gameday App", "Class Scheduler", "Senior Design".
+    - **Projects:** Any Non-paid work or outside projects. 
     
     CANDIDATE RESUME:
     ${resumeText}
@@ -105,4 +106,78 @@ function parsePdfBuffer(buffer: Buffer): Promise<string> {
     });
     pdfParser.parseBuffer(buffer);
   });
+}
+
+export async function generateInterviewPrep(jobId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const job = await prisma.job.findUnique({ where: { id: jobId, userId } });
+  if (!job?.description) throw new Error("Job has no description.");
+
+  const prompt = `
+    You are an expert Hiring Manager. 
+    Based on the following Job Description, generate 4 challenging and realistic interview questions (mix of technical and behavioral).
+    For each question, provide "Key Talking Points" (a concise hint on what the candidate should mention).
+    
+
+    JOB DESCRIPTION:
+    ${job.description.substring(0, 3000)}
+
+    OUTPUT JSON FORMAT:
+    {
+      "questions": [
+        {
+          "question": "The interview question",
+          "hint": "Bullet points or advice on how to answer"
+        }
+      ]
+    }
+  `;
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+}
+
+export async function generateInterviewAnswer(jobId: string, question: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const job = await prisma.job.findUnique({ where: { id: jobId, userId } });
+  const prefs = await prisma.userPreferences.findUnique({ where: { userId } });
+  
+  if (!job?.description) throw new Error("Job has no description.");
+  if (!prefs?.masterResumeUrl) throw new Error("No resume found.");
+
+  // 1. Fetch & Parse Resume (Reusing logic for context)
+  const response = await fetch(prefs.masterResumeUrl);
+  const arrayBuffer = await response.arrayBuffer();
+  const pdfBuffer = Buffer.from(arrayBuffer);
+  let resumeText = await parsePdfBuffer(pdfBuffer); // Reusing the helper function we made earlier
+
+  // 2. The "STAR Method" Prompt
+  const prompt = `
+    You are an expert Interview Coach.
+    
+    TASK: Write a perfect interview answer for the User based on their Resume.
+    
+    THE QUESTION: "${question}"
+    
+    CONTEXT:
+    - User's Resume: ${resumeText.substring(0, 3000)}
+    - Job Description: ${job.description.substring(0, 1000)}
+    
+    INSTRUCTIONS:
+    - Use the STAR Method (Situation, Task, Action, Result) but weave it into a natural response.
+    - CITE SPECIFIC PROJECTS or EXPERIENCES from the resume. Do not make things up.
+    - Keep it under 150 words. Conversational but professional.
+    
+    OUTPUT: 
+    Just the answer text. No "Here is the answer:" prefix.
+  `;
+
+  const result = await model.generateContent(prompt);
+  const aiResponse = await result.response;
+  return aiResponse.text();
 }

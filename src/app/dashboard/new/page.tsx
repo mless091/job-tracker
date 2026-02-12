@@ -94,7 +94,7 @@ export default function NewJobPage() {
               </div>
             </div>
 
-            {/* Description (The most important part for AI) */}
+            {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">Job Description</Label>
               <Textarea 

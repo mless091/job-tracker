@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JobFlow AI - Intelligent Career Copilot
 
-## Getting Started
+**JobFlow AI** is a full-stack application designed to modernize the job search process. It combines a kanban-style application tracker with a Generative AI engine that autonomously rewrites user resumes to match specific job descriptions.
 
-First, run the development server:
+![Dashboard Preview](./public/dashboard-preview.png) *(Note: Add a screenshot here later)*
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Key Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* **AI Resume Architect:** Uses Google Gemini to analyze job descriptions and rewrite resume bullet points for ATS optimization (PDF-to-PDF generation).
+* **Visual Pipeline:** A "Command Center" dashboard with velocity charts and status metrics.
+* **AI Interview Coach:** Analyzes the job description to generate 4 targeted interview questions (Technical & Behavioral). Also can generate sample answers for you to review, based on your resume using the STAR method.
+* **Smart Filtering:** Instant search and filtering across application statuses (Applied, Interview, Offer).
+* **Secure Storage:** Cloud-based resume storage with secure user authentication via Clerk.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* **Frontend:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion.
+* **UI Library:** Shadcn UI, Lucide Icons, Recharts (Data Viz).
+* **Backend:** Server Actions, Prisma ORM.
+* **Database:** PostgreSQL (Neon/Supabase).
+* **AI:** Google Gemini 1.5 Flash (Generative Content & Text Analysis).
+* **PDF Processing:** `pdf2json` for parsing, `@react-pdf/renderer` for generation.
 
-## Learn More
+## 🏗️ Architecture Highlight: The "Resume Architect"
 
-To learn more about Next.js, take a look at the following resources:
+One of the core technical challenges was maintaining the formatting of a user's resume while rewriting the content.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1.  **Extraction:** The app parses the "Master Resume" PDF into raw text using `pdf2json`.
+2.  **Constraint Generation:** A prompt engineering layer instructs Gemini to keep factual history (dates, companies) immutable while strictly optimizing the *descriptions* for keyword matching.
+3.  **Regeneration:** The new content is fed into a dynamic React-PDF template that re-renders a downloadable, polished PDF in real-time.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📦 Getting Started
 
-## Deploy on Vercel
+1.  **Clone the repo:**
+    ```bash
+    git clone [https://github.com/mless091/job-tracker.git](https://github.com/mless091/job-tracker.git)
+    ```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Set up environment variables:**
+    Create a `.env` file with your keys (Clerk, Database URL, Gemini API Key, Blob Storage).
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔮 Future Improvements
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* **Cover Letter Generation:** Using the same context engine to draft personalized cover letters.
+* **Browser Extension:** To "Clip" jobs directly from LinkedIn into the dashboard.

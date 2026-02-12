@@ -41,3 +41,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </ClerkProvider>
   );
 }
+export const metadata: Metadata = {
+  title: {
+    template: "%s | JobFlow AI",
+    default: "JobFlow AI - Intelligent Career Copilot", // Default if a page doesn't specify one
+  },
+  description: "Track applications, tailor resumes, and prepare for interviews with AI.",
+  icons: {
+    icon: "/icon.png", // Explicitly pointing if auto-detection fails
+  },
+};

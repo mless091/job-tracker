@@ -1,170 +1,188 @@
-// app/dashboard/page.tsx (Replace the SortableHeader and DashboardPage)
-
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, UserCircle, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Plus, Briefcase, Calendar, CheckCircle, Clock, UserCircle, SearchX } from "lucide-react";
 import SearchInput from "@/components/ui/job-board/SearchInput";
-import { Job } from "@prisma/client"; // <--- Add this line
+import { StatCard } from "@/components/ui/dashboard/StatCard";
+import { JobCard } from "@/components/ui/job-board/JobCard";
+import { JobFilter } from "@/components/ui/job-board/JobFilter";
+import { ActivityChart } from "@/components/ui/dashboard/ActivityChart";
 
-// --- NEW ROBUST HEADER COMPONENT ---
-function SortableHeader({ 
-  column, 
-  label, 
-  currentSort, 
-  currentOrder 
-}: { 
-  column: string, 
-  label: string, 
-  currentSort: string, 
-  currentOrder: string 
-}) {
-  const isActive = currentSort === column;
-  
-  // Logic: If active and 'asc', go 'desc'. Otherwise 'asc'.
-  const nextOrder = isActive && currentOrder === "asc" ? "desc" : "asc";
-  
-  // Icon Logic
-  let Icon = ArrowUpDown;
-  if (isActive) {
-    Icon = currentOrder === "asc" ? ArrowUp : ArrowDown;
-  }
 
-  return (
-    <Link 
-      href={`/dashboard?sort=${column}&order=${nextOrder}`} 
-      className={`flex items-center hover:text-primary transition-colors ${isActive ? "text-primary font-bold" : "text-muted-foreground"}`}
-    >
-      {label}
-      <Icon className="ml-2 h-3 w-3" />
-    </Link>
-  );
-}
+export const metadata = {
+  title: "Dashboard",
+};
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ query?: string; sort?: string; order?: string }>;
+  searchParams: Promise<{ query?: string; status?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/");
 
   const params = await searchParams;
   const query = params.query || "";
-  const sort = params.sort || "createdAt";
-  const order = params.order || "desc"; // Default to newest first
+  const statusFilter = params.status || "";
 
-  // Validation: Prisma only accepts 'asc' or 'desc'. 
-  // If someone messes with the URL, fallback to 'desc'.
-  const validOrder = order === "asc" ? "asc" : "desc";
+  // Fetch ALL jobs for Global Stats & Chart
+  const allJobs = await prisma.job.findMany({
+    where: { userId },
+    select: { status: true, createdAt: true }, 
+  });
 
-  const jobs = await prisma.job.findMany({
-    where: {
-      userId,
-      OR: [
-        { company: { contains: query, mode: "insensitive" } },
-        { position: { contains: query, mode: "insensitive" } },
-      ],
-    },
-    orderBy: {
-      [sort]: validOrder, // <--- Dynamic Sort Direction
-    },
+  const totalCount = allJobs.length;
+  const interviewCount = allJobs.filter((j) => ["INTERVIEW", "Interview", "interview"].includes(j.status)).length;
+  const offerCount = allJobs.filter((j) => ["OFFER", "Offer", "offer"].includes(j.status)).length;
+  const appliedCount = allJobs.filter((j) => ["APPLIED", "Applied", "applied"].includes(j.status)).length;
+
+  // Fetch FILTERED jobs for the Card Grid
+  const whereClause: any = {
+    userId,
+    OR: [
+      { company: { contains: query, mode: "insensitive" } },
+      { position: { contains: query, mode: "insensitive" } },
+    ],
+  };
+
+  if (statusFilter) {
+    whereClause.status = {
+      equals: statusFilter,
+      mode: "insensitive",
+    };
+  }
+
+  const displayJobs = await prisma.job.findMany({
+    where: whereClause,
+    orderBy: { createdAt: "desc" },
   });
 
   return (
-    <div className="container mx-auto py-10 px-4">
+    <div className="container mx-auto py-10 px-4 max-w-7xl">
+      
+      {/*  HEADER & ACTIONS */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Job Applications</h1>
-          <p className="text-muted-foreground">Manage and track your job search progress.</p>
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+          <p className="text-slate-500 mt-2">Manage your high-priority applications.</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/profile">
-            <Button variant="outline">
-              <UserCircle className="mr-2 h-4 w-4" />
-              Profile
-            </Button>
-          </Link>
-          <Link href="/dashboard/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add New Job
-            </Button>
-          </Link>
+        
+        <div className="flex items-center gap-3">
+            <Link href="/profile">
+                <Button variant="outline" size="lg" className="border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                    <UserCircle className="mr-2 h-5 w-5" />
+                    Profile
+                </Button>
+            </Link>
+
+            <Link href="/dashboard/new">
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
+                    <Plus className="mr-2 h-5 w-5" /> Add New Job
+                </Button>
+            </Link>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-            <div>
-              <CardTitle>Your Pipeline</CardTitle>
-              <CardDescription>Found {jobs.length} applications.</CardDescription>
+      {/* STATS & CHART SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        
+        {/* Left Column: Stat Cards */}
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Link href="/dashboard" className="block h-full">
+                <StatCard 
+                    label="Total Jobs" 
+                    value={totalCount} 
+                    icon={<Briefcase className="w-6 h-6" />} 
+                    color="blue" 
+                    isActive={!statusFilter} 
+                />
+            </Link>
+
+            <Link href="/dashboard?status=APPLIED" className="block h-full">
+                <StatCard 
+                    label="In Progress" 
+                    value={appliedCount} 
+                    icon={<Clock className="w-6 h-6" />} 
+                    color="orange" 
+                    isActive={statusFilter === "APPLIED"}
+                />
+            </Link>
+
+            <Link href="/dashboard?status=INTERVIEW" className="block h-full">
+                <StatCard 
+                    label="Interviews" 
+                    value={interviewCount} 
+                    icon={<Calendar className="w-6 h-6" />} 
+                    color="purple" 
+                    isActive={statusFilter === "INTERVIEW"}
+                />
+            </Link>
+
+            <Link href="/dashboard?status=OFFER" className="block h-full">
+                <StatCard 
+                    label="Offers" 
+                    value={offerCount} 
+                    icon={<CheckCircle className="w-6 h-6" />} 
+                    color="green" 
+                    isActive={statusFilter === "OFFER"}
+                />
+            </Link>
+        </div>
+
+        {/* Right Column: Velocity Chart */}
+        <div className="lg:col-span-1 h-full min-h-[250px]">
+            <ActivityChart jobs={allJobs} />
+        </div>
+      </div>
+
+      {/* CONTROL BAR */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex-1">
+           <SearchInput />
+        </div>
+        <JobFilter />
+      </div>
+
+      {/* JOB GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {displayJobs.map((job, index) => (
+          <JobCard
+            key={job.id}
+            id={job.id}
+            index={index}
+            title={job.position}
+            company={job.company}
+            location={job.location || ""}
+            status={job.status}
+            date={job.createdAt.toString()}
+          />
+        ))}
+        
+        {/* IMPROVED EMPTY STATE */}
+        {displayJobs.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-24 px-4 text-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4 shadow-sm">
+                   <SearchX className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                   No jobs found
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6 leading-relaxed">
+                   We couldn't find any applications matching your current filters. Try adjusting your search or clear your filters to see everything.
+                </p>
+                
+                {(statusFilter || query) && (
+                  <Link href="/dashboard">
+                    <Button variant="outline" className="border-slate-200 dark:border-slate-700 hover:bg-white hover:text-blue-600 dark:hover:bg-slate-800 transition-colors">
+                       Clear all filters
+                    </Button>
+                  </Link>
+                )}
             </div>
-            <SearchInput />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {jobs.length === 0 && !query ? (
-             <div className="text-center py-10 text-muted-foreground">No jobs tracked yet.</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <SortableHeader column="company" label="Company" currentSort={sort} currentOrder={validOrder} />
-                  </TableHead>
-                  <TableHead>
-                    <SortableHeader column="position" label="Position" currentSort={sort} currentOrder={validOrder} />
-                  </TableHead>
-                  <TableHead>
-                    <SortableHeader column="status" label="Status" currentSort={sort} currentOrder={validOrder} />
-                  </TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    <SortableHeader column="createdAt" label="Date Applied" currentSort={sort} currentOrder={validOrder} />
-                  </TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {jobs.map((job: Job) => (
-                  <TableRow key={job.id}>
-                    <TableCell className="font-medium">{job.company}</TableCell>
-                    <TableCell>{job.position}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={job.status} />
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {new Date(job.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Link href={`/dashboard/${job.id}`}>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    SAVED: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-    APPLIED: "bg-blue-500/15 text-blue-700 dark:text-blue-300 hover:bg-blue-500/25",
-    INTERVIEW: "bg-purple-500/15 text-purple-700 dark:text-purple-300 hover:bg-purple-500/25",
-    OFFER: "bg-green-500/15 text-green-700 dark:text-green-300 hover:bg-green-500/25",
-    REJECTED: "bg-red-500/15 text-red-700 dark:text-red-300 hover:bg-red-500/25",
-  };
-  return <Badge className={`${styles[status] || "bg-secondary"} border-0`}>{status}</Badge>;
 }

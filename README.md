@@ -50,3 +50,4 @@ One of the core technical challenges was maintaining the formatting of a user's 
 
 * **Cover Letter Generation:** Using the same context engine to draft personalized cover letters.
 * **Browser Extension:** To "Clip" jobs directly from LinkedIn into the dashboard.
+* **Resume Builder:** Allow users to input their experience, education, etc and build a resume for them.

@@ -8,7 +8,7 @@ import PDFParser from "pdf2json";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const model = genAI.getGenerativeModel({ 
-  model: "gemini-2.5-flash", 
+  model: "gemini-1.5-flash", 
   generationConfig: { 
     responseMimeType: "application/json" 
   } 
@@ -154,7 +154,7 @@ export async function generateInterviewAnswer(jobId: string, question: string) {
   const response = await fetch(prefs.masterResumeUrl);
   const arrayBuffer = await response.arrayBuffer();
   const pdfBuffer = Buffer.from(arrayBuffer);
-  let resumeText = await parsePdfBuffer(pdfBuffer); // Reusing the helper function we made earlier
+  let resumeText = await parsePdfBuffer(pdfBuffer);
 
   // 2. The "STAR Method" Prompt
   const prompt = `
